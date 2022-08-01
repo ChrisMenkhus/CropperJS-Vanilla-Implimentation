@@ -1,0 +1,77 @@
+;(function (container, modelInstanceId) {
+  var util = BBUI.forms.Utility
+  var cropper
+
+  function FormLoad() {
+    var id = 'ctrl_' + modelInstanceId.replace(/-/g, '_') + '_PICTURE_value'
+    var img = document.getElementById(id).getElementsByTagName('img')[0]
+
+    img.addEventListener('load', LoadCropper, false)
+
+    LoadCropper()
+  }
+
+  function LoadCropper() {
+    // hide relaunch action if LoadCropper() is run.
+    $('#ctrl_' + modelInstanceId.replace(/-/g, '_') + '_RELAUNCH_action').hide()
+
+    var id = 'ctrl_' + modelInstanceId.replace(/-/g, '_') + '_PICTURE_value'
+    var img = document.getElementById(id).getElementsByTagName('img')[0]
+
+    if (cropper !== undefined) {
+      cropper.destroy()
+    }
+
+    cropper = new Cropper(img, {
+      viewMode: 1,
+      dragMode: 'move',
+      toggleDragModeOnDblclick: false,
+      minCropBoxHeight: 330,
+      minCropBoxWidth: 220,
+      aspectRatio: 220 / 330,
+      zoom: function (event) {
+        if (event.detail.ratio > 1) {
+          event.preventDefault()
+        }
+      },
+    })
+  }
+
+  function SaveCropper() {
+    var cropped = ''
+    var original = ''
+
+    if (cropper !== undefined) {
+      var croppedCanvas = cropper.getCroppedCanvas()
+      if (croppedCanvas !== null) {
+        cropped = croppedCanvas.toDataURL('image/jpeg', 0.9)
+      }
+      cropper.clear()
+      var uncroppedCanvas = cropper.getCroppedCanvas()
+      if (uncroppedCanvas !== null) {
+        original = uncroppedCanvas.toDataURL('image/jpeg', 0.9)
+      }
+    }
+
+    waitForImage(cropped, original)
+  }
+
+  function waitForImage(cropped, original) {
+    if (cropped !== '' && original !== '') {
+      var dimensions = [
+        { name: 'CROPPEDPICTURE', value: cropped },
+        { name: 'ORIGINALPICTURE', value: original },
+      ]
+      container.updateMultipleFields(modelInstanceId, dimensions)
+    } else {
+      setTimeout(waitForImage, 250)
+    }
+  }
+
+  container.on({
+    render: FormLoad,
+    formupdated: FormLoad,
+    //beforeformconfirmed: SaveCropper,
+    formconfirmed: SaveCropper,
+  })
+})()

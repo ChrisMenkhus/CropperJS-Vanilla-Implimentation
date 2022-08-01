@@ -1,0 +1,60 @@
+html {
+  color: black;
+  background-color: #fff;
+}
+
+section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+header {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding-bottom: 2rem;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: black;
+}
+
+.cropper {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  max-width: 1200px;
+  min-height: 70vh;
+}
+
+.cropper__container {
+  width: 50%;
+  height: 100%;
+  margin: 1rem 2rem;
+  background-color: #fff;
+  box-shadow: 5px 5px 15px 5px rgba(11, 11, 11, 0.19);
+  min-height: 50vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+
+.cropper__img {
+  height: 100%;
+}
+
+button {
+  width: 10rem;
+  height: 3rem;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
