@@ -1,0 +1,97 @@
+(function (container, modelInstanceId) {
+	var util = BBUI.forms.Utility;
+	var cropper;
+	var imgSrc = '';
+	var elements = {
+		img: null,
+	};
+	var config = {
+		 timeoutDelay: 5000,
+		 saveMethod: 'normal'
+	}
+
+	function FormLoad() {
+		var id = 'ctrl_' + modelInstanceId.replace(/-/g, '_') + '_PICTURE_value';
+		elements.img = document.getElementById(id).getElementsByTagName('img')[0];
+		elements.img.addEventListener('load', LoadCropper, false)
+
+		LoadCropper();
+
+		console.log('Form Loaded');
+	}
+
+	function LoadCropper() {
+		// hide relaunch action if LoadCropper() is run.
+		$('#ctrl_' + modelInstanceId.replace(/-/g, '_') + '_RELAUNCH_action').hide();
+
+		if (cropper !== undefined) {
+			cropper.destroy();
+		}
+
+		cropper = InstantiateCropper()
+
+		console.log('cropper instantiated: ', cropper);
+	}
+
+	function InstantiateCropper() {
+		return new Cropper(elements.img, {
+			viewMode: 1,
+			dragMode: 'move',
+			toggleDragModeOnDblclick: false,
+			minCropBoxHeight: 330,
+			minCropBoxWidth: 220,
+			aspectRatio: 220 / 330,
+			zoom: function (event) {
+				if (event.detail.ratio > 1) {
+					event.preventDefault()
+				}
+			},
+		})
+	}
+
+	function SaveCropper() {
+		var croppedCanvas = cropper.getCroppedCanvas();
+		imgSrc = croppedCanvas.toDataURL('image/jpeg', .9)
+
+		console.log('Saving using ' + config.saveMethod + ' save method');
+
+		switch (config.saveMethod) {
+			case 'setTimeout':
+				setTimeout(UpdateContainer, config.timeoutDelay, imgSrc, imgSrc)
+				break;
+			case 'normal':
+				UpdateContainer(imgSrc, imgSrc)
+				break;
+			case 'asyncTimeout':
+				sleep(UpdateContainer, imgSrc, imgSrc)
+				break;
+			default:
+		}
+	}
+
+	function timeout(ms) {
+		return new Promise((resolve) => setTimeout(resolve, ms))
+	}
+
+	async function sleep(fn, ...args) {
+		await timeout(config.timeoutDelay)
+		return fn(...args)
+	}
+
+	function UpdateContainer(cropped, original) {
+		var dimensions = [
+			{ name: 'CROPPEDPICTURE', value: cropped },
+			{ name: 'ORIGINALPICTURE', value: original },
+		]
+		container.updateMultipleFields(modelInstanceId, dimensions)
+		console.log('Updating container: ', dimensions);
+	}
+
+	container.on({
+		render: FormLoad,
+		formupdated: FormLoad,
+		//beforeformconfirmed: SaveCropper,
+		formconfirmed: SaveCropper
+	});
+
+})();
