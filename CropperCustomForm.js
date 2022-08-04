@@ -1,34 +1,50 @@
 ﻿(function (container, modelInstanceId) {
 	//#region Initialize Variables
-	var imgElement;
-	var saveButtonElement;
-	var cropper;
-	var cropped = '';
-	var original = '';
-	var selectorId = 'ctrl_' + modelInstanceId.replace(/-/g, '_');
+	var selectorId = 'ctrl_' + modelInstanceId.replace(/-/g, '_')
+	var imgElement
+	var cropper
+	var cropped = ''
+	var original = ''
+	var isSaving = false
 	//#endregion
 
+
 	//#region Initialize Form
-	function FormLoad() {
-		imgElement = document.getElementById(selectorId + '_PICTURE_value').getElementsByTagName('img')[0];
-		saveButtonElement = document.getElementById(selectorId + '_SAVEFORM')
+	function LoadForm() {
+		InitImage()
+		InitSaveButton()
+		InitCropper()
+	}
 
-		imgElement.addEventListener('load', LoadCropper, false)
+
+	function InitImage() {
+		imgElement = document.getElementById(selectorId + '_PICTURE_value').getElementsByTagName('img')[0]
+		imgElement.addEventListener('load', InitCropper, false)
+	}
+
+
+	function InitSaveButton() {
+		/* Removes blackbaud event listeners from save button */
+		var saveButtonContainerElement = document.querySelector('#dataformdialog_' + modelInstanceId + ' ' + '.x-toolbar-right-ct' + ' ' + '.bbui-buttons-primary')
+		saveButtonContainerElement.replaceWith(saveButtonContainerElement.cloneNode(true))
+
+		var saveButtonElement = document.querySelector('#dataformdialog_' + modelInstanceId + ' .x-toolbar-right-ct .x-toolbar-cell table')
+
 		saveButtonElement.addEventListener('click', SaveCropper)
-
-		LoadCropper();
+		saveButtonElement.addEventListener('mouseenter', function () {
+			saveButtonElement.classList.add('x-btn-over')
+		})
+		saveButtonElement.addEventListener('mouseleave', function () {
+			saveButtonElement.classList.remove('x-btn-over')
+		})
 	}
 
-	function LoadCropper() {
+
+	function InitCropper() {
 		if (cropper !== undefined) {
-			cropper.destroy();
+			cropper.destroy()
 		}
-
-		cropper = InstantiateCropper()
-	}
-
-	function InstantiateCropper() {
-		return new Cropper(imgElement, {
+		cropper = new Cropper(imgElement, {
 			viewMode: 1,
 			dragMode: 'move',
 			toggleDragModeOnDblclick: false,
@@ -44,19 +60,22 @@
 	}
 	//#endregion
 
+
 	//#region Save Cropped Image
 	function SaveCropper() {
+		if (isSaving) return
 		if (cropper == undefined) return
+
+		isSaving = true
 
 		var croppedPictureField = container.getFieldByName("CROPPEDPICTURE", modelInstanceId)
 		var originalPictureField = container.getFieldByName("ORIGINALPICTURE", modelInstanceId)
 
-		var croppedCanvas = cropper.getCroppedCanvas()
-		cropped = croppedCanvas.toDataURL('image/jpeg', 0.9)
+		var croppedCanvas = getCanvas()
+		cropped = croppedCanvas?.toDataURL('image/jpeg', 0.9)
 
-		cropper.clear()
-		var uncroppedCanvas = cropper.getCroppedCanvas()
-		original = uncroppedCanvas.toDataURL('image/jpeg', 0.9)
+		var uncroppedCanvas = getCanvas(true)
+		original = uncroppedCanvas?.toDataURL('image/jpeg', 0.9)
 
 		function isImgSrcValid() {
 			return checkIfValid(cropped) && checkIfValid(original)
@@ -68,14 +87,16 @@
 			return isCroppedValid && isOriginalValid
 		}
 
-		TickTimerConditionalCallback(250, 32, isImgSrcValid, function () {
+		TickTimerConditionalCallback(250, 8, isImgSrcValid, function () {
 			UpdateContainer(cropped, original)
 		})
 
 		TickTimerConditionalCallback(250, 32, isFieldsValid, function () {
 			container.confirmForm()
+			isSaving = false;
 		})
 	}
+
 
 	function UpdateContainer(cropped, original) {
 		var dimensions = [
@@ -86,12 +107,14 @@
 	}
 	//#endregion
 
-	//#region Create Utility Functions
+
+	//#region Utility Functions
 	function TickTimerConditionalCallback(timerLength, maxAmountOfAttempts, conditional, callback) {
-		var amountOfAttempts = 1;
+		var amountOfAttempts = 1
+
 		var interval = setInterval(function () {
 			if (amountOfAttempts <= maxAmountOfAttempts) {
-				amountOfAttempts++;
+				amountOfAttempts++
 
 				if (conditional()) {
 					callback()
@@ -99,18 +122,29 @@
 				}
 			}
 			else {
-				clearInterval(interval);
+				clearInterval(interval)
 			}
-		}, timerLength);
+		}, timerLength)
 	}
+
 
 	function checkIfValid(value) {
 		return value !== null && value !== undefined && value != ''
 	}
+
+
+	function getCanvas(shouldClearCanvas = false) {
+		if (shouldClearCanvas) {
+			cropper.clear()
+		}
+
+		return cropper.getCroppedCanvas()
+	}
 	//#endregion
 
+
 	container.on({
-		render: FormLoad,
-		formupdated: FormLoad
+		render: LoadForm,
+		formupdated: LoadForm
 	})
 })();
